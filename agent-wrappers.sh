@@ -29,8 +29,9 @@ opencode() {
   command opencode "$@"; local rc=$?
   local d="$HOME/.local/share/opencode/storage/session" f
   if command -v jq >/dev/null 2>&1 && [ -x "$__sx_logger" ] && [ -d "$d" ]; then
-    # newest session (by time.updated) whose .directory == current folder
-    f="$(jq -rc --arg p "$PWD" 'select(.directory==$p) | "\(.time.updated // 0)\t\(input_filename)"' \
+    # most-recent session (by created/updated, matching opencode's own "Continue")
+    # whose .directory == current folder
+    f="$(jq -rc --arg p "$PWD" 'select(.directory==$p) | "\(([.time.updated, .time.created] | map(. // 0) | max))\t\(input_filename)"' \
           "$d"/*/ses_*.json 2>/dev/null | sort -rn | head -1 | cut -f2)"
     [ -n "$f" ] && jq -c '{session_id:.id, cwd:.directory, tool:"opencode", title:(.title // ""), transcript_path:input_filename}' \
       "$f" 2>/dev/null | head -1 | "$__sx_logger"
