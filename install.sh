@@ -56,9 +56,10 @@ MARK_CLOSE="# <<< session.txt agent wrappers <<<"
 SRC='[ -f "$HOME/.claude/hooks/agent-wrappers.sh" ] && . "$HOME/.claude/hooks/agent-wrappers.sh"'
 for rc in "$HOME/.zshrc" "$HOME/.bashrc"; do
   [ -f "$rc" ] || continue
-  # drop any previous block (old codex-only marker included), then append fresh
+  # drop any previous block (old codex-only marker included), then append fresh.
+  # use | as sed delimiter since the markers contain # and >
   sed -i '/# >>> session.txt codex hook >>>/,/# <<< session.txt codex hook <<</d' "$rc"
-  sed -i "\#$MARK_OPEN#,\#$MARK_CLOSE#d" "$rc"
+  sed -i "\|$MARK_OPEN|,\|$MARK_CLOSE|d" "$rc"
   printf '\n%s\n%s\n%s\n' "$MARK_OPEN" "$SRC" "$MARK_CLOSE" >> "$rc"
   log "agent wrappers sourced from $(basename "$rc")"
 done
