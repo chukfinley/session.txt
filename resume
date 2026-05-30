@@ -36,10 +36,18 @@ done
 [ -f "$file" ] || { echo "session.txt: no file in $PWD" >&2; exit 1; }
 
 # --- helpers ----------------------------------------------------------------
-# tool of a line = first token (claude, codex, opencode, pi, cursor-agent, gemini)
+# tool of a line = first token (claude, codex, opencode, pi, cursor-agent, agent, gemini)
 line_tool() { awk '{print $1}' <<<"$1"; }
-# id of a line = third token (claude --resume <id> / codex resume <id> / ...)
-line_id()   { awk '{print $3}' <<<"$1"; }
+# id of a line. Handles both the spaced form (claude --resume <id>, codex resume
+# <id>, ...) and the fused form (agent --resume=<id>, cursor-agent --resume=<id>).
+line_id() {
+  local l="$1"
+  case "$l" in
+    *--resume=*)  l="${l##*--resume=}";  printf '%s\n' "${l%% *}" ;;
+    *--session=*) l="${l##*--session=}"; printf '%s\n' "${l%% *}" ;;
+    *)            awk '{print $3}' <<<"$l" ;;
+  esac
+}
 # title of a line (after "# "), empty if none
 line_title() { case "$1" in *"#"*) echo "${1#*# }" ;; *) echo "" ;; esac; }
 # command without the trailing "# title" comment
@@ -61,7 +69,7 @@ is_live() {
       [ -n "$(sqlite3 "$db" "SELECT 1 FROM session WHERE id='$q' LIMIT 1;" 2>/dev/null)" ] ;;
     pi)
       find "$HOME/.pi/agent/sessions" -name "*${id}*.jsonl" -print -quit 2>/dev/null | grep -q . ;;
-    cursor-agent)
+    cursor-agent|agent)
       [ -n "$(find "$HOME/.cursor/chats" -maxdepth 2 -type d -name "$id" -print -quit 2>/dev/null)" ] ;;
     gemini)
       # id is "latest"; live if the current folder has a gemini chat

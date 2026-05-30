@@ -68,8 +68,10 @@ resume N show   # just print the full command for entry N (don't run it)
 | **Codex** | `codex resume <id>` | shell wrapper → newest `~/.codex/sessions` rollout | – |
 | **opencode** | `opencode --session <id>` | shell wrapper → newest session for this folder | ✓ |
 | **pi** | `pi --session <id>` | shell wrapper → `~/.pi/agent/sessions/<folder>` | ✓ (first message) |
-| **cursor-agent** | `cursor-agent --resume <id>` | shell wrapper → `~/.cursor/chats/md5(cwd)` | – |
+| **cursor-agent** / **agent** | `<cmd> --resume=<id>` | shell wrapper → `~/.cursor/chats/md5(cwd)` | – |
 | **Gemini CLI** | `gemini --resume latest` | shell wrapper → `~/.gemini/tmp/sha256(cwd)` | – |
+
+Cursor's CLI is wrapped under both names it ships as (`cursor-agent` and `agent`). The wrappers log on a clean exit and on **Ctrl-C** (most of these TUIs are quit with Ctrl-C), via an interrupt trap.
 
 Other CLIs (qwen, aider) don't expose a stable per-session resume id, so they aren't logged.
 

@@ -43,7 +43,8 @@ case "$tool" in
   codex)        base="codex resume ${session_id}" ;;
   opencode)     base="opencode --session ${session_id}" ;;
   pi)           base="pi --session ${session_id}" ;;
-  cursor-agent) base="cursor-agent --resume ${session_id}" ;;
+  cursor-agent) base="cursor-agent --resume=${session_id}" ;;
+  agent)        base="agent --resume=${session_id}" ;;
   gemini)       base="gemini --resume ${session_id}" ;;
   *)            base="claude --resume ${session_id}" ;;
 esac
