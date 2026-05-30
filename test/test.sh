@@ -80,15 +80,18 @@ md5="$(printf '%s' "$WORK" | md5sum | cut -d' ' -f1)"
 sha="$(printf '%s' "$WORK" | sha256sum | cut -d' ' -f1)"
 mkdir -p "$HM/.claude/projects/p" \
          "$HM/.codex/sessions/2026/05/10" \
-         "$HM/.local/share/opencode/storage/session/g" \
+         "$HM/.local/share/opencode" \
          "$HM/.pi/agent/sessions/x" \
          "$HM/.cursor/chats/$md5/CUR1" \
          "$HM/.gemini/tmp/$sha/chats"
 : > "$HM/.claude/projects/p/AAA.jsonl"
 : > "$HM/.codex/sessions/2026/05/10/rollout-2026-CDX.jsonl"
-: > "$HM/.local/share/opencode/storage/session/g/ses_OC.json"
 : > "$HM/.pi/agent/sessions/x/2026_PI1.jsonl"
 : > "$HM/.gemini/tmp/$sha/chats/session-1.json"
+# opencode keeps sessions in SQLite
+sqlite3 "$HM/.local/share/opencode/opencode.db" \
+  "CREATE TABLE session(id TEXT, directory TEXT, title TEXT, time_created INT, time_updated INT);
+   INSERT INTO session VALUES('ses_OC','$WORK','OC',1,1);" 2>/dev/null
 
 # session.txt: 6 live entries + 1 dead claude that must be pruned
 cat > session.txt <<EOF

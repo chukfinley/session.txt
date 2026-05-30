@@ -55,7 +55,10 @@ is_live() {
     codex)
       find "$HOME/.codex/sessions" -name "rollout-*-${id}.jsonl" -print -quit 2>/dev/null | grep -q . ;;
     opencode)
-      find "$HOME/.local/share/opencode/storage/session" -name "${id}.json" -print -quit 2>/dev/null | grep -q . ;;
+      local db="$HOME/.local/share/opencode/opencode.db" q
+      command -v sqlite3 >/dev/null 2>&1 && [ -f "$db" ] || return 1
+      q="${id//\'/\'\'}"
+      [ -n "$(sqlite3 "$db" "SELECT 1 FROM session WHERE id='$q' LIMIT 1;" 2>/dev/null)" ] ;;
     pi)
       find "$HOME/.pi/agent/sessions" -name "*${id}*.jsonl" -print -quit 2>/dev/null | grep -q . ;;
     cursor-agent)
