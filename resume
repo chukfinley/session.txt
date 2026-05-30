@@ -1,65 +1,95 @@
 #!/usr/bin/env bash
 # session.txt — resume helper
-# Liest ./session.txt im aktuellen Ordner und startet eine gespeicherte Session.
-# Die Zeilen sind fertige Commands (claude --resume <id> / codex resume <id>),
-# darum tool-egal.
+# Reads ./session.txt in the current folder and relaunches a saved session.
+# Lines are runnable commands with an optional "# title" comment:
+#   claude --resume <id>  # title
+#   codex resume <id>  # title
+# Tool-agnostic: it just runs the chosen line (minus the comment).
 #
-#   resume          neueste Session (letzte Zeile) starten
-#   resume -l       nummerierte Liste anzeigen (1 = aelteste, oben)
-#   resume N        Eintrag N starten (z.B. resume 1 = aelteste)
-#   resume -h       Hilfe
+#   resume          start the newest session (last line)
+#   resume -l       numbered list with titles (1 = oldest, at top)
+#   resume N        start entry N            (e.g. resume 1 = oldest)
+#   resume -h       help
+#
+# On every run it self-cleans: entries whose session no longer exists on disk
+# (no Claude transcript / no Codex rollout) are dropped from session.txt.
 
 set -uo pipefail
 
 file="${PWD}/session.txt"
 
-usage() {
-  sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
-}
+usage() { sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; }
 
 case "${1:-}" in
   -h|--help) usage; exit 0 ;;
 esac
 
-if [ ! -f "$file" ]; then
-  echo "session.txt: keine Datei in $PWD" >&2
-  exit 1
-fi
+[ -f "$file" ] || { echo "session.txt: no file in $PWD" >&2; exit 1; }
 
-# Nicht-leere Zeilen einlesen
-lines=()
+# --- helpers ----------------------------------------------------------------
+# id of a line  (claude --resume <id> ... | codex resume <id> ...)
+line_id()   { awk '{print $3}' <<<"$1"; }
+# tool of a line
+line_tool() { case "$1" in codex\ *) echo codex ;; *) echo claude ;; esac; }
+# title of a line (after "# "), empty if none
+line_title() { case "$1" in *"#"*) echo "${1#*# }" ;; *) echo "" ;; esac; }
+# command without the trailing "# title" comment
+line_cmd()  { local c="${1%%#*}"; echo "${c%"${c##*[![:space:]]}"}"; }
+
+# does the session still exist on disk?
+is_live() {
+  local tool="$1" id="$2"
+  [ -n "$id" ] || return 1
+  if [ "$tool" = codex ]; then
+    find "$HOME/.codex/sessions" -name "rollout-*-${id}.jsonl" -print -quit 2>/dev/null | grep -q .
+  else
+    find "$HOME/.claude/projects" -name "${id}.jsonl" -print -quit 2>/dev/null | grep -q .
+  fi
+}
+
+# --- load + prune dead entries ----------------------------------------------
+live=()
 while IFS= read -r l; do
-  [ -n "$l" ] && lines+=("$l")
+  [ -n "$l" ] || continue
+  if is_live "$(line_tool "$l")" "$(line_id "$l")"; then
+    live+=("$l")
+  fi
 done < <(grep -vE '^[[:space:]]*$' "$file")
 
-n=${#lines[@]}
-if [ "$n" -eq 0 ]; then
-  echo "session.txt: leer in $PWD" >&2
+# rewrite session.txt with only the live entries
+if [ "${#live[@]}" -eq 0 ]; then
+  : > "$file"
+  echo "session.txt: no resumable sessions left in $PWD" >&2
   exit 1
 fi
+printf '%s\n' "${live[@]}" > "$file"
 
-# Liste anzeigen
+n=${#live[@]}
+
+# --- list -------------------------------------------------------------------
 if [ "${1:-}" = "-l" ] || [ "${1:-}" = "--list" ] || [ "${1:-}" = "list" ]; then
   i=1
-  for l in "${lines[@]}"; do
-    printf '%2d  %s\n' "$i" "$l"
+  for l in "${live[@]}"; do
+    id="$(line_id "$l")"; short="${id:0:8}"
+    tool="$(line_tool "$l")"; title="$(line_title "$l")"
+    printf '%2d  %-6s %s  %s\n' "$i" "$tool" "$short" "$title"
     i=$((i + 1))
   done
   exit 0
 fi
 
-# Index waehlen: Argument = Zeilennummer, sonst neueste (letzte Zeile)
+# --- pick + run -------------------------------------------------------------
 if [ -n "${1:-}" ] && [[ "$1" =~ ^[0-9]+$ ]]; then
   idx=$(( $1 - 1 ))
   if [ "$idx" -lt 0 ] || [ "$idx" -ge "$n" ]; then
-    echo "resume: kein Eintrag $1 (1..$n)" >&2
-    exit 1
+    echo "resume: no entry $1 (1..$n)" >&2; exit 1
   fi
-  cmd="${lines[$idx]}"
+  sel="${live[$idx]}"
 else
-  cmd="${lines[$(( n - 1 ))]}"
+  sel="${live[$(( n - 1 ))]}"
 fi
 
-echo "» $cmd" >&2
-# Command starten und Prozess ersetzen (TUI bekommt das Terminal)
+cmd="$(line_cmd "$sel")"
+title="$(line_title "$sel")"
+echo "» ${title:-$cmd}" >&2
 exec ${cmd}
