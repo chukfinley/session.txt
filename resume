@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# session.txt — resume helper
+# Liest ./session.txt im aktuellen Ordner und startet eine gespeicherte Session.
+# Die Zeilen sind fertige Commands (claude --resume <id> / codex resume <id>),
+# darum tool-egal.
+#
+#   resume          neueste Session (letzte Zeile) starten
+#   resume -l       nummerierte Liste anzeigen (1 = aelteste, oben)
+#   resume N        Eintrag N starten (z.B. resume 1 = aelteste)
+#   resume -h       Hilfe
+
+set -uo pipefail
+
+file="${PWD}/session.txt"
+
+usage() {
+  sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+}
+
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+esac
+
+if [ ! -f "$file" ]; then
+  echo "session.txt: keine Datei in $PWD" >&2
+  exit 1
+fi
+
+# Nicht-leere Zeilen einlesen
+lines=()
+while IFS= read -r l; do
+  [ -n "$l" ] && lines+=("$l")
+done < <(grep -vE '^[[:space:]]*$' "$file")
+
+n=${#lines[@]}
+if [ "$n" -eq 0 ]; then
+  echo "session.txt: leer in $PWD" >&2
+  exit 1
+fi
+
+# Liste anzeigen
+if [ "${1:-}" = "-l" ] || [ "${1:-}" = "--list" ] || [ "${1:-}" = "list" ]; then
+  i=1
+  for l in "${lines[@]}"; do
+    printf '%2d  %s\n' "$i" "$l"
+    i=$((i + 1))
+  done
+  exit 0
+fi
+
+# Index waehlen: Argument = Zeilennummer, sonst neueste (letzte Zeile)
+if [ -n "${1:-}" ] && [[ "$1" =~ ^[0-9]+$ ]]; then
+  idx=$(( $1 - 1 ))
+  if [ "$idx" -lt 0 ] || [ "$idx" -ge "$n" ]; then
+    echo "resume: kein Eintrag $1 (1..$n)" >&2
+    exit 1
+  fi
+  cmd="${lines[$idx]}"
+else
+  cmd="${lines[$(( n - 1 ))]}"
+fi
+
+echo "» $cmd" >&2
+# Command starten und Prozess ersetzen (TUI bekommt das Terminal)
+exec ${cmd}
