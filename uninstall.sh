@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # session.txt — uninstaller
-#   curl -fsSL https://raw.githubusercontent.com/chukfinley/session.txt/main/uninstall.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/chuk-development/session.txt/main/uninstall.sh | bash
 # Removes hooks, wrapper and the resume command. Existing session.txt files are kept.
 set -euo pipefail
 

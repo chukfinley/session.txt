@@ -17,7 +17,7 @@ Each line is a runnable command; the `# title` is a shell comment (Claude's own 
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chukfinley/session.txt/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chuk-development/session.txt/main/install.sh | bash
 ```
 
 Requirements: `jq`, `curl`. (`sudo apt install jq` / `brew install jq`)
@@ -34,7 +34,7 @@ Open a new terminal (or `source ~/.zshrc`) afterwards so the codex wrapper loads
 Re-run the same command — it is idempotent and cleans up older versions:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chukfinley/session.txt/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chuk-development/session.txt/main/install.sh | bash
 ```
 
 ## Usage
@@ -119,7 +119,7 @@ echo 'session.txt' >> ~/.config/git/ignore
 ## Uninstall
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chukfinley/session.txt/main/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/chuk-development/session.txt/main/uninstall.sh | bash
 ```
 
 Removes hooks, wrapper, and the `resume` command. Existing `session.txt` files are left alone.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # session.txt — installer (also updater: re-run this any time)
-#   curl -fsSL https://raw.githubusercontent.com/chukfinley/session.txt/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/chuk-development/session.txt/main/install.sh | bash
 #
 # Installs / updates:
 #   - Claude Code hooks (Stop + SessionEnd) -> log resume command to ./session.txt
@@ -8,7 +8,7 @@
 #   - `resume` command -> relaunch the newest session from ./session.txt
 set -euo pipefail
 
-RAW="https://raw.githubusercontent.com/chukfinley/session.txt/main"
+RAW="https://raw.githubusercontent.com/chuk-development/session.txt/main"
 HOOKS_DIR="$HOME/.claude/hooks"
 BIN_DIR="$HOME/.local/bin"
 SETTINGS="$HOME/.claude/settings.json"
