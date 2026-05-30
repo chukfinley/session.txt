@@ -1,0 +1,44 @@
+<svg width="860" height="400" viewBox="0 0 860 400" fill="none" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="860" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0b0e14"/>
+      <stop offset="1" stop-color="#10131b"/>
+    </linearGradient>
+    <linearGradient id="word" x1="250" y1="40" x2="610" y2="90" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7ee787"/>
+      <stop offset="0.55" stop-color="#58a6ff"/>
+      <stop offset="1" stop-color="#bc8cff"/>
+    </linearGradient>
+    <linearGradient id="term" x1="0" y1="130" x2="0" y2="360" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#0a0d13"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="860" height="400" rx="18" fill="url(#bg)"/>
+
+  <!-- wordmark -->
+  <text x="430" y="62" text-anchor="middle" font-size="44" font-weight="700" fill="url(#word)" letter-spacing="0.5">session.txt</text>
+  <text x="430" y="92" text-anchor="middle" font-size="15" fill="#8b949e">never lose an AI coding session again</text>
+
+  <!-- terminal window -->
+  <rect x="60" y="120" width="740" height="240" rx="12" fill="url(#term)" stroke="#30363d" stroke-width="1"/>
+  <!-- title bar -->
+  <circle cx="86" cy="146" r="6" fill="#ff5f56"/>
+  <circle cx="106" cy="146" r="6" fill="#ffbd2e"/>
+  <circle cx="126" cy="146" r="6" fill="#27c93f"/>
+  <text x="430" y="151" text-anchor="middle" font-size="13" fill="#6e7681">~/projects/api — session.txt</text>
+  <line x1="60" y1="168" x2="800" y2="168" stroke="#21262d" stroke-width="1"/>
+
+  <!-- content lines -->
+  <g font-size="15.5" xml:space="preserve">
+    <text x="86" y="200"><tspan fill="#58a6ff">claude</tspan><tspan fill="#79c0ff"> --resume</tspan><tspan fill="#c9d1d9"> 6b2a13c9</tspan><tspan fill="#6e7681">  # Explore repository</tspan></text>
+    <text x="86" y="228"><tspan fill="#7ee787">codex</tspan><tspan fill="#79c0ff"> resume</tspan><tspan fill="#c9d1d9"> 019e12e7</tspan><tspan fill="#6e7681">  # Refactor renderer</tspan></text>
+    <text x="86" y="256"><tspan fill="#d2a8ff">opencode</tspan><tspan fill="#79c0ff"> --session</tspan><tspan fill="#c9d1d9"> ses_3a8b</tspan><tspan fill="#6e7681">  # Fix auth bug</tspan></text>
+    <text x="86" y="284"><tspan fill="#ffa657">agent</tspan><tspan fill="#79c0ff"> --resume=</tspan><tspan fill="#c9d1d9">e44f2ccc</tspan><tspan fill="#6e7681">  # Folder cleanup  </tspan><tspan fill="#3fb950">← newest</tspan></text>
+  </g>
+
+  <!-- prompt -->
+  <line x1="60" y1="306" x2="800" y2="306" stroke="#21262d" stroke-width="1"/>
+  <text x="86" y="336" font-size="15.5" xml:space="preserve"><tspan fill="#3fb950">$</tspan><tspan fill="#e6edf3"> resume</tspan><tspan fill="#6e7681">          # relaunch the newest session</tspan></text>
+</svg>

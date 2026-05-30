@@ -1,6 +1,10 @@
-# session.txt
+<p align="center">
+  <img src="assets/banner.svg" alt="session.txt" width="780">
+</p>
 
-Never lose an AI coding session again. Drops a `session.txt` into every folder you work in, listing the **resume commands** for your coding-agent sessions — newest at the bottom, deduplicated, one line each. Works across Claude Code, Codex, opencode, pi, and cursor-agent.
+<p align="center"><b>Never lose an AI coding session again.</b></p>
+
+Every session you start in **Claude Code, Codex, opencode, pi, or cursor-agent** gets its **resume command** written to a `session.txt` in that folder — newest last, titled, deduplicated. Reopen the folder, glance at the file or just run `resume`, and you're right back where you left off.
 
 ```text
 claude --resume 2e3204d9-fac4-4fa4-b578-09a5b1c6bfba  # Fix auth middleware
@@ -16,11 +20,11 @@ Each line is a runnable command; the `# title` is a shell comment (Claude's own 
 
 ## Install
 
+One line — needs `jq` and `curl` (`sudo apt install jq` · `brew install jq`):
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/chuk-development/session.txt/main/install.sh | bash
 ```
-
-Requirements: `jq`, `curl`. (`sudo apt install jq` / `brew install jq`)
 
 The installer:
 - adds Claude Code `Stop` + `SessionEnd` hooks to `~/.claude/settings.json` (merged, existing settings untouched)
