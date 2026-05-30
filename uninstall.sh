@@ -11,7 +11,7 @@ CMD='"$HOME/.claude/hooks/session-log.sh"'
 
 log() { printf '\033[1;32m›\033[0m %s\n' "$*"; }
 
-rm -f "$HOOKS_DIR/session-log.sh" "$HOOKS_DIR/codex-session-log.sh" "$BIN_DIR/resume"
+rm -f "$HOOKS_DIR/session-log.sh" "$HOOKS_DIR/agent-wrappers.sh" "$HOOKS_DIR/codex-session-log.sh" "$BIN_DIR/resume"
 log "Scripts removed"
 
 if [ -f "$SETTINGS" ] && command -v jq >/dev/null 2>&1; then
@@ -27,10 +27,9 @@ fi
 
 for rc in "$HOME/.zshrc" "$HOME/.bashrc"; do
   [ -f "$rc" ] || continue
-  if grep -qF "# >>> session.txt codex hook >>>" "$rc"; then
-    sed -i '/# >>> session.txt codex hook >>>/,/# <<< session.txt codex hook <<</d' "$rc"
-    log "codex wrapper removed from $(basename "$rc")"
-  fi
+  sed -i '/# >>> session.txt codex hook >>>/,/# <<< session.txt codex hook <<</d' "$rc"
+  sed -i '/# >>> session.txt agent wrappers >>>/,/# <<< session.txt agent wrappers <<</d' "$rc"
+  log "wrappers removed from $(basename "$rc")"
 done
 
 log "Uninstalled. Your session.txt files were left untouched."

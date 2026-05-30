@@ -9,6 +9,8 @@
 #   resume          start the newest session (last line)
 #   resume -l       numbered list with titles (1 = oldest, at top)
 #   resume N        start entry N            (e.g. resume 1 = oldest)
+#   resume N show   print the full command for entry N (don't run it)
+#   resume show     print the full command for the newest entry
 #   resume -h       help
 #
 # On every run it self-cleans: entries whose session no longer exists on disk
@@ -18,33 +20,54 @@ set -uo pipefail
 
 file="${PWD}/session.txt"
 
-usage() { sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; }
 
-case "${1:-}" in
-  -h|--help) usage; exit 0 ;;
-esac
+# --- parse args: a number (index), a list flag, a show flag, in any order ---
+LIST=0; SHOW=0; NUM=""
+for a in "$@"; do
+  case "$a" in
+    -h|--help) usage; exit 0 ;;
+    -l|--list|list) LIST=1 ;;
+    -s|--show|-p|--print|show|print|cmd) SHOW=1 ;;
+    *[0-9]) [[ "$a" =~ ^[0-9]+$ ]] && NUM="$a" ;;
+  esac
+done
 
 [ -f "$file" ] || { echo "session.txt: no file in $PWD" >&2; exit 1; }
 
 # --- helpers ----------------------------------------------------------------
-# id of a line  (claude --resume <id> ... | codex resume <id> ...)
+# tool of a line = first token (claude, codex, opencode, pi, cursor-agent, gemini)
+line_tool() { awk '{print $1}' <<<"$1"; }
+# id of a line = third token (claude --resume <id> / codex resume <id> / ...)
 line_id()   { awk '{print $3}' <<<"$1"; }
-# tool of a line
-line_tool() { case "$1" in codex\ *) echo codex ;; *) echo claude ;; esac; }
 # title of a line (after "# "), empty if none
 line_title() { case "$1" in *"#"*) echo "${1#*# }" ;; *) echo "" ;; esac; }
 # command without the trailing "# title" comment
 line_cmd()  { local c="${1%%#*}"; echo "${c%"${c##*[![:space:]]}"}"; }
 
-# does the session still exist on disk?
+# does the session still exist on disk? (checked against the current folder)
 is_live() {
   local tool="$1" id="$2"
   [ -n "$id" ] || return 1
-  if [ "$tool" = codex ]; then
-    find "$HOME/.codex/sessions" -name "rollout-*-${id}.jsonl" -print -quit 2>/dev/null | grep -q .
-  else
-    find "$HOME/.claude/projects" -name "${id}.jsonl" -print -quit 2>/dev/null | grep -q .
-  fi
+  case "$tool" in
+    claude)
+      find "$HOME/.claude/projects" -name "${id}.jsonl" -print -quit 2>/dev/null | grep -q . ;;
+    codex)
+      find "$HOME/.codex/sessions" -name "rollout-*-${id}.jsonl" -print -quit 2>/dev/null | grep -q . ;;
+    opencode)
+      find "$HOME/.local/share/opencode/storage/session" -name "${id}.json" -print -quit 2>/dev/null | grep -q . ;;
+    pi)
+      find "$HOME/.pi/agent/sessions" -name "*${id}*.jsonl" -print -quit 2>/dev/null | grep -q . ;;
+    cursor-agent)
+      [ -n "$(find "$HOME/.cursor/chats" -maxdepth 2 -type d -name "$id" -print -quit 2>/dev/null)" ] ;;
+    gemini)
+      # id is "latest"; live if the current folder has a gemini chat
+      command -v sha256sum >/dev/null 2>&1 || return 1
+      local h; h="$(printf '%s' "$PWD" | sha256sum | cut -d' ' -f1)"
+      ls "$HOME/.gemini/tmp/$h/chats"/session-*.json >/dev/null 2>&1 ;;
+    *)
+      return 1 ;;
+  esac
 }
 
 # --- load + prune dead entries ----------------------------------------------
@@ -67,22 +90,22 @@ printf '%s\n' "${live[@]}" > "$file"
 n=${#live[@]}
 
 # --- list -------------------------------------------------------------------
-if [ "${1:-}" = "-l" ] || [ "${1:-}" = "--list" ] || [ "${1:-}" = "list" ]; then
+if [ "$LIST" -eq 1 ]; then
   i=1
   for l in "${live[@]}"; do
     id="$(line_id "$l")"; short="${id:0:8}"
     tool="$(line_tool "$l")"; title="$(line_title "$l")"
-    printf '%2d  %-6s %s  %s\n' "$i" "$tool" "$short" "$title"
+    printf '%2d  %-12s %-8s  %s\n' "$i" "$tool" "$short" "$title"
     i=$((i + 1))
   done
   exit 0
 fi
 
-# --- pick + run -------------------------------------------------------------
-if [ -n "${1:-}" ] && [[ "$1" =~ ^[0-9]+$ ]]; then
-  idx=$(( $1 - 1 ))
+# --- pick entry -------------------------------------------------------------
+if [ -n "$NUM" ]; then
+  idx=$(( NUM - 1 ))
   if [ "$idx" -lt 0 ] || [ "$idx" -ge "$n" ]; then
-    echo "resume: no entry $1 (1..$n)" >&2; exit 1
+    echo "resume: no entry $NUM (1..$n)" >&2; exit 1
   fi
   sel="${live[$idx]}"
 else
@@ -91,5 +114,13 @@ fi
 
 cmd="$(line_cmd "$sel")"
 title="$(line_title "$sel")"
+
+# --- show: print the full command instead of running it ---------------------
+if [ "$SHOW" -eq 1 ]; then
+  printf '%s\n' "$cmd"
+  exit 0
+fi
+
+# --- run --------------------------------------------------------------------
 echo "» ${title:-$cmd}" >&2
 exec ${cmd}

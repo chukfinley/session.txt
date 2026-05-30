@@ -1,6 +1,6 @@
 # session.txt
 
-Never lose an AI coding session again. Drops a `session.txt` into every folder you work in, listing the **resume commands** for your Claude Code and OpenAI Codex sessions — newest at the bottom, deduplicated, one line each.
+Never lose an AI coding session again. Drops a `session.txt` into every folder you work in, listing the **resume commands** for your coding-agent sessions — newest at the bottom, deduplicated, one line each. Works across Claude Code, Codex, opencode, pi, cursor-agent and Gemini CLI.
 
 ```text
 claude --resume 2e3204d9-fac4-4fa4-b578-09a5b1c6bfba  # Fix auth middleware
@@ -47,6 +47,7 @@ To jump back in:
 resume          # start the newest session in ./session.txt
 resume -l       # numbered list with titles (1 = oldest, at top)
 resume N        # start entry N  (e.g. resume 1 = oldest)
+resume N show   # just print the full command for entry N (don't run it)
 ```
 
 `resume -l` prints something human-friendly instead of raw UUIDs:
@@ -59,24 +60,35 @@ resume N        # start entry N  (e.g. resume 1 = oldest)
 
 `resume` runs whatever the line says, so it resumes Claude *and* Codex sessions transparently. On every run it also **self-cleans**: any entry whose session no longer exists on disk is dropped from `session.txt`.
 
+## Supported clients
+
+| Client | Resume command logged | How it's captured | Title |
+|--------|-----------------------|-------------------|-------|
+| **Claude Code** | `claude --resume <id>` | `Stop` + `SessionEnd` hooks | ✓ (Claude's `ai-title`) |
+| **Codex** | `codex resume <id>` | shell wrapper → newest `~/.codex/sessions` rollout | – |
+| **opencode** | `opencode --session <id>` | shell wrapper → newest session for this folder | ✓ |
+| **pi** | `pi --session <id>` | shell wrapper → `~/.pi/agent/sessions/<folder>` | ✓ (first message) |
+| **cursor-agent** | `cursor-agent --resume <id>` | shell wrapper → `~/.cursor/chats/md5(cwd)` | – |
+| **Gemini CLI** | `gemini --resume latest` | shell wrapper → `~/.gemini/tmp/sha256(cwd)` | – |
+
+Other CLIs (qwen, aider) don't expose a stable per-session resume id, so they aren't logged.
+
 ## How it works
 
-| Tool | Mechanism |
-|------|-----------|
-| **Claude Code** | `Stop` (after each turn) + `SessionEnd` hooks call `session-log.sh` with the session JSON. The session title comes from Claude's own `ai-title`. |
-| **Codex** | A shell function wraps `codex`; on exit it reads the newest rollout file in `~/.codex/sessions`, extracts the session id + cwd, and logs it. |
+Claude Code is driven by `Stop` (after each turn) + `SessionEnd` hooks. The other clients have no session-end hook, so a shell function wraps each installed CLI and, on exit, finds the last-used session for the current folder.
 
-Both feed the same writer (`session-log.sh`), which writes `<cwd>/session.txt`: removes any existing line for that session id, then appends it at the bottom (newest last) with a `# title` comment.
+Everything feeds the same writer (`session-log.sh`), which writes `<cwd>/session.txt`: it removes any existing line for that command, then appends the new one at the bottom (newest last) with a `# title` comment.
 
-- It only logs sessions whose transcript actually exists on disk, so the list never fills with non-resumable IDs.
-- Logging after every turn means a hard crash (no clean exit) still leaves a resumable entry behind.
+- It only logs sessions whose data actually exists on disk, so the list never fills with non-resumable entries.
+- For Claude, logging after every turn means a hard crash (no clean exit) still leaves a resumable entry behind.
+- `resume` self-cleans on every run: entries whose session no longer exists are dropped.
 
 ## Files
 
 | File | Location after install |
 |------|------------------------|
 | `session-log.sh` | `~/.claude/hooks/session-log.sh` |
-| `codex-session-log.sh` | `~/.claude/hooks/codex-session-log.sh` |
+| `agent-wrappers.sh` | `~/.claude/hooks/agent-wrappers.sh` |
 | `resume` | `~/.local/bin/resume` |
 
 ## Ignore session.txt globally (optional)

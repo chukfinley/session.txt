@@ -23,10 +23,12 @@ command -v curl >/dev/null 2>&1 || die "curl is required."
 mkdir -p "$HOOKS_DIR" "$BIN_DIR" "$(dirname "$SETTINGS")"
 
 log "Downloading files from $RAW"
-curl -fsSL "$RAW/session-log.sh"       -o "$HOOKS_DIR/session-log.sh"
-curl -fsSL "$RAW/codex-session-log.sh" -o "$HOOKS_DIR/codex-session-log.sh"
-curl -fsSL "$RAW/resume"               -o "$BIN_DIR/resume"
+curl -fsSL "$RAW/session-log.sh"    -o "$HOOKS_DIR/session-log.sh"
+curl -fsSL "$RAW/agent-wrappers.sh" -o "$HOOKS_DIR/agent-wrappers.sh"
+curl -fsSL "$RAW/resume"            -o "$BIN_DIR/resume"
 chmod +x "$HOOKS_DIR/session-log.sh" "$BIN_DIR/resume"
+# remove the old codex-only wrapper from earlier versions
+rm -f "$HOOKS_DIR/codex-session-log.sh"
 
 # --- merge Claude Code hooks into settings.json (idempotent) ----------------
 log "Registering Claude Code hooks in $SETTINGS"
@@ -48,17 +50,17 @@ jq --arg cmd "$CMD" '
   | (if (.hooks.SessionStart // []) == [] then del(.hooks.SessionStart) else . end)
 ' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
 
-# --- source codex wrapper from shell rc files (idempotent) ------------------
-MARK="# >>> session.txt codex hook >>>"
-SRC='[ -f "$HOME/.claude/hooks/codex-session-log.sh" ] && . "$HOME/.claude/hooks/codex-session-log.sh"'
+# --- source agent wrappers from shell rc files (idempotent + updatable) -----
+MARK_OPEN="# >>> session.txt agent wrappers >>>"
+MARK_CLOSE="# <<< session.txt agent wrappers <<<"
+SRC='[ -f "$HOME/.claude/hooks/agent-wrappers.sh" ] && . "$HOME/.claude/hooks/agent-wrappers.sh"'
 for rc in "$HOME/.zshrc" "$HOME/.bashrc"; do
   [ -f "$rc" ] || continue
-  if grep -qF "$MARK" "$rc"; then
-    log "codex wrapper already in $(basename "$rc")"
-  else
-    printf '\n%s\n%s\n# <<< session.txt codex hook <<<\n' "$MARK" "$SRC" >> "$rc"
-    log "codex wrapper added to $(basename "$rc")"
-  fi
+  # drop any previous block (old codex-only marker included), then append fresh
+  sed -i '/# >>> session.txt codex hook >>>/,/# <<< session.txt codex hook <<</d' "$rc"
+  sed -i "\#$MARK_OPEN#,\#$MARK_CLOSE#d" "$rc"
+  printf '\n%s\n%s\n%s\n' "$MARK_OPEN" "$SRC" "$MARK_CLOSE" >> "$rc"
+  log "agent wrappers sourced from $(basename "$rc")"
 done
 
 case ":$PATH:" in
@@ -68,7 +70,8 @@ esac
 
 echo
 log "Done."
-echo "  • Claude: sessions are logged to ./session.txt automatically."
-echo "  • Codex:  open a new terminal (or: source ~/.zshrc), then use codex."
+echo "  • Claude logs via hooks. Codex / opencode / pi / cursor-agent / gemini log via wrappers."
+echo "  • Open a new terminal (or: source ~/.zshrc) so the wrappers load."
 echo "  • resume        start the newest session from ./session.txt"
 echo "  • resume -l     list with titles   |   resume N   start entry N"
+echo "  • resume N show print the full command instead of running it"
