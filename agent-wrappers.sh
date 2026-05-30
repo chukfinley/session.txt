@@ -42,9 +42,14 @@ __sx_emit_codex() {
   command -v jq >/dev/null 2>&1 && [ -x "$__sx_logger" ] && [ -d "$d" ] || return
   f="$(ls -t "$d"/*/*/*/rollout-*.jsonl 2>/dev/null | head -1)"
   [ -n "$f" ] && __sx_fresh "$f" "$1" || return
-  jq -c --arg tp "$f" \
-    'select(.type=="session_meta") | {session_id:.payload.id, cwd:.payload.cwd, tool:"codex", transcript_path:$tp}' \
-    "$f" 2>/dev/null | head -1 | "$__sx_logger"
+  local id cw ti
+  id="$(jq -rc 'select(.type=="session_meta") | .payload.id' "$f" 2>/dev/null | head -1)"
+  cw="$(jq -rc 'select(.type=="session_meta") | .payload.cwd' "$f" 2>/dev/null | head -1)"
+  # title = first real user prompt (skip injected <environment_context> etc.)
+  ti="$(jq -rc 'select(.type=="response_item") | .payload | select(.role=="user") | .content[]? | (.text // empty)' "$f" 2>/dev/null \
+        | grep -vE '^[[:space:]]*<' | grep -vE '^[[:space:]]*$' | head -1)"
+  [ -n "$id" ] && jq -nc --arg s "$id" --arg c "${cw:-$PWD}" --arg t "$ti" --arg tp "$f" \
+    '{session_id:$s, cwd:$c, tool:"codex", title:$t, transcript_path:$tp}' | "$__sx_logger"
 }
 
 __sx_emit_opencode() {
@@ -76,13 +81,22 @@ __sx_emit_pi() {
 
 # Cursor's CLI ships as both `cursor-agent` and `agent`; log the name that was used.
 __sx_cursor_log() {  # $1 = command name, $2 = run start
-  local base="$HOME/.cursor/chats" h d id
+  local base="$HOME/.cursor/chats" h d id ti=""
   command -v md5sum >/dev/null 2>&1 && [ -x "$__sx_logger" ] && [ -d "$base" ] || return
   h="$(printf '%s' "$PWD" | md5sum | cut -d' ' -f1)"
   d="$(ls -dt "$base/$h"/*/ 2>/dev/null | head -1)"
   [ -n "$d" ] && __sx_fresh "$d" "$2" || return
   id="$(basename "$d")"
-  printf '{"session_id":"%s","cwd":"%s","tool":"%s","transcript_path":"%s"}' "$id" "$PWD" "$1" "$d" | "$__sx_logger"
+  # cursor stores the chat name in store.db meta (value = hex-encoded JSON)
+  if [ -f "$d/store.db" ] && command -v sqlite3 >/dev/null 2>&1 && command -v xxd >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+    ti="$(sqlite3 "$d/store.db" 'select value from meta limit 1;' 2>/dev/null | xxd -r -p 2>/dev/null | jq -r '.name // empty' 2>/dev/null)"
+  fi
+  if command -v jq >/dev/null 2>&1; then
+    jq -nc --arg s "$id" --arg c "$PWD" --arg tl "$1" --arg t "$ti" --arg tp "$d" \
+      '{session_id:$s, cwd:$c, tool:$tl, title:$t, transcript_path:$tp}' | "$__sx_logger"
+  else
+    printf '{"session_id":"%s","cwd":"%s","tool":"%s","transcript_path":"%s"}' "$id" "$PWD" "$1" "$d" | "$__sx_logger"
+  fi
 }
 __sx_emit_agent()       { __sx_cursor_log agent "$1"; }
 __sx_emit_cursoragent() { __sx_cursor_log cursor-agent "$1"; }
@@ -95,7 +109,14 @@ __sx_emit_gemini() {
   cd="$HOME/.gemini/tmp/$h/chats"
   f="$(ls -t "$cd"/session-*.json 2>/dev/null | head -1)"
   [ -n "$f" ] && __sx_fresh "$f" "$1" || return
-  printf '{"session_id":"latest","cwd":"%s","tool":"gemini","transcript_path":"%s"}' "$PWD" "$f" | "$__sx_logger"
+  local ti=""
+  command -v jq >/dev/null 2>&1 && ti="$(jq -r 'first(.messages[]? | select(.type=="user") | .content) // empty' "$f" 2>/dev/null)"
+  if command -v jq >/dev/null 2>&1; then
+    jq -nc --arg c "$PWD" --arg t "$ti" --arg tp "$f" \
+      '{session_id:"latest", cwd:$c, tool:"gemini", title:$t, transcript_path:$tp}' | "$__sx_logger"
+  else
+    printf '{"session_id":"latest","cwd":"%s","tool":"gemini","transcript_path":"%s"}' "$PWD" "$f" | "$__sx_logger"
+  fi
 }
 
 # --- wrappers ---------------------------------------------------------------
