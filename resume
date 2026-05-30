@@ -71,11 +71,6 @@ is_live() {
       find "$HOME/.pi/agent/sessions" -name "*${id}*.jsonl" -print -quit 2>/dev/null | grep -q . ;;
     cursor-agent|agent)
       [ -n "$(find "$HOME/.cursor/chats" -maxdepth 2 -type d -name "$id" -print -quit 2>/dev/null)" ] ;;
-    gemini)
-      # id is "latest"; live if the current folder has a gemini chat
-      command -v sha256sum >/dev/null 2>&1 || return 1
-      local h; h="$(printf '%s' "$PWD" | sha256sum | cut -d' ' -f1)"
-      ls "$HOME/.gemini/tmp/$h/chats"/session-*.json >/dev/null 2>&1 ;;
     *)
       return 1 ;;
   esac

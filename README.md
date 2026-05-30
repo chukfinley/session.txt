@@ -1,6 +1,6 @@
 # session.txt
 
-Never lose an AI coding session again. Drops a `session.txt` into every folder you work in, listing the **resume commands** for your coding-agent sessions — newest at the bottom, deduplicated, one line each. Works across Claude Code, Codex, opencode, pi, cursor-agent and Gemini CLI.
+Never lose an AI coding session again. Drops a `session.txt` into every folder you work in, listing the **resume commands** for your coding-agent sessions — newest at the bottom, deduplicated, one line each. Works across Claude Code, Codex, opencode, pi, and cursor-agent.
 
 ```text
 claude --resume 2e3204d9-fac4-4fa4-b578-09a5b1c6bfba  # Fix auth middleware
@@ -65,11 +65,10 @@ resume N show   # just print the full command for entry N (don't run it)
 | Client | Resume command logged | How it's captured | Title |
 |--------|-----------------------|-------------------|-------|
 | **Claude Code** | `claude --resume <id>` | `Stop` + `SessionEnd` hooks | ✓ (Claude's `ai-title`) |
-| **Codex** | `codex resume <id>` | shell wrapper → newest `~/.codex/sessions` rollout | – |
+| **Codex** | `codex resume <id>` | shell wrapper → newest `~/.codex/sessions` rollout | ✓ (first prompt) |
 | **opencode** | `opencode --session <id>` | shell wrapper → newest session for this folder | ✓ |
 | **pi** | `pi --session <id>` | shell wrapper → `~/.pi/agent/sessions/<folder>` | ✓ (first message) |
-| **cursor-agent** / **agent** | `<cmd> --resume=<id>` | shell wrapper → `~/.cursor/chats/md5(cwd)` | – |
-| **Gemini CLI** | `gemini --resume latest` | shell wrapper → `~/.gemini/tmp/sha256(cwd)` | – |
+| **cursor-agent** / **agent** | `<cmd> --resume=<id>` | shell wrapper → `~/.cursor/chats/md5(cwd)` | ✓ (chat name) |
 
 Cursor's CLI is wrapped under both names it ships as (`cursor-agent` and `agent`). The wrappers log on a clean exit and on **Ctrl-C** (most of these TUIs are quit with Ctrl-C), via an interrupt trap.
 

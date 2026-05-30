@@ -1,6 +1,6 @@
 # session.txt — agent wrappers
 # Sourced from ~/.zshrc / ~/.bashrc. Wraps coding-agent CLIs that have no
-# session-end hook (codex, opencode, pi, cursor-agent / agent, gemini). After each
+# session-end hook (codex, opencode, pi, cursor-agent / agent). After each
 # run the wrapper finds the session used in THIS run for the current folder and
 # logs its resume command into <cwd>/session.txt (same writer as the Claude hook).
 #
@@ -101,28 +101,9 @@ __sx_cursor_log() {  # $1 = command name, $2 = run start
 __sx_emit_agent()       { __sx_cursor_log agent "$1"; }
 __sx_emit_cursoragent() { __sx_cursor_log cursor-agent "$1"; }
 
-# Gemini resumes by index/"latest", not a stable id, so we log `--resume latest`.
-__sx_emit_gemini() {
-  command -v sha256sum >/dev/null 2>&1 && [ -x "$__sx_logger" ] || return
-  local h cd f
-  h="$(printf '%s' "$PWD" | sha256sum | cut -d' ' -f1)"
-  cd="$HOME/.gemini/tmp/$h/chats"
-  f="$(ls -t "$cd"/session-*.json 2>/dev/null | head -1)"
-  [ -n "$f" ] && __sx_fresh "$f" "$1" || return
-  local ti=""
-  command -v jq >/dev/null 2>&1 && ti="$(jq -r 'first(.messages[]? | select(.type=="user") | .content) // empty' "$f" 2>/dev/null)"
-  if command -v jq >/dev/null 2>&1; then
-    jq -nc --arg c "$PWD" --arg t "$ti" --arg tp "$f" \
-      '{session_id:"latest", cwd:$c, tool:"gemini", title:$t, transcript_path:$tp}' | "$__sx_logger"
-  else
-    printf '{"session_id":"latest","cwd":"%s","tool":"gemini","transcript_path":"%s"}' "$PWD" "$f" | "$__sx_logger"
-  fi
-}
-
 # --- wrappers ---------------------------------------------------------------
 codex()        { __sx_run codex        __sx_emit_codex       "$@"; }
 opencode()     { __sx_run opencode     __sx_emit_opencode    "$@"; }
 pi()           { __sx_run pi           __sx_emit_pi          "$@"; }
-gemini()       { __sx_run gemini       __sx_emit_gemini      "$@"; }
 cursor-agent() { __sx_run cursor-agent __sx_emit_cursoragent "$@"; }
 agent()        { __sx_run agent        __sx_emit_agent       "$@"; }

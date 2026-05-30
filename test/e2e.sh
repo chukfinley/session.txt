@@ -63,7 +63,6 @@ run_tool opencode     "opencode --session "   opencode run "'$PROMPT'"
 run_tool pi           "pi --session "         pi --print "'$PROMPT'"
 run_tool cursor-agent "cursor-agent --resume=" cursor-agent --trust -p "'$PROMPT'"
 run_tool agent        "agent --resume="        agent --trust -p "'$PROMPT'"
-run_tool gemini       "gemini --resume "       gemini -p "'$PROMPT'"
 echo "──────────────────────────────"
 printf 'TOTAL: \033[1;32m%d passed\033[0m, \033[1;31m%d failed\033[0m, \033[1;33m%d skipped\033[0m\n' "$pass" "$fail" "$skip"
 [ "$fail" -eq 0 ]

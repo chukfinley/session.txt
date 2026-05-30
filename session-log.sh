@@ -2,7 +2,7 @@
 # session.txt — core writer
 # Called by Claude Code hooks (Stop / SessionEnd) and by the agent wrappers.
 # Reads JSON from stdin:
-#   { "session_id": "...", "cwd": "...", "tool": "claude|codex|opencode|pi|cursor-agent|gemini",
+#   { "session_id": "...", "cwd": "...", "tool": "claude|codex|opencode|pi|cursor-agent|agent",
 #     "transcript_path": "...", "title": "..." }
 # Writes a resume line into <cwd>/session.txt, e.g.:
 #   claude --resume <id>  # <title>
@@ -45,7 +45,6 @@ case "$tool" in
   pi)           base="pi --session ${session_id}" ;;
   cursor-agent) base="cursor-agent --resume=${session_id}" ;;
   agent)        base="agent --resume=${session_id}" ;;
-  gemini)       base="gemini --resume ${session_id}" ;;
   *)            base="claude --resume ${session_id}" ;;
 esac
 
