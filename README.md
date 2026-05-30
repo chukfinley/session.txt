@@ -91,6 +91,21 @@ Everything feeds the same writer (`session-log.sh`), which writes `<cwd>/session
 | `agent-wrappers.sh` | `~/.claude/hooks/agent-wrappers.sh` |
 | `resume` | `~/.local/bin/resume` |
 
+## Testing
+
+```bash
+bash test/test.sh   # deterministic unit/integration suite (no network)
+bash test/e2e.sh    # live: runs each installed CLI headless, then checks logging
+```
+
+`test/test.sh` drives the writer and `resume` against fake session stores under a
+temporary `$HOME`, covering all six tool mappings, the transcript gate, dedup,
+newest-bottom ordering, self-pruning, `show`, and selection — 12 assertions, no
+network. `test/e2e.sh` makes real API calls: it runs each installed agent in
+headless mode and asserts a correct, resumable line is logged. Tools that aren't
+installed, aren't authenticated, or whose headless mode doesn't persist a session
+are reported as skipped.
+
 ## Ignore session.txt globally (optional)
 
 To keep `session.txt` out of your git repos:
